@@ -270,6 +270,28 @@ class ConvertingAsset: Hashable, ObservableObject {
             }
             
             do {
+                
+                
+                let frameHeight = Int(sampleVideoSize.height)
+                let frameWidth = Int(sampleVideoSize.width)
+                let outputCollector1: Waifu2xModelOutputCollector
+                let outputCollector2: Waifu2xModelOutputCollector
+                outputCollector1 = Waifu2xModelOutputCollector(
+                    outputSize: (
+                        frameWidth * self.model.options.inputOutputRatio,
+                        frameHeight * self.model.options.inputOutputRatio
+                    ),
+                    options: self.model.options
+                )
+                
+                outputCollector2 = Waifu2xModelOutputCollector(
+                    outputSize: (
+                        frameWidth * self.model.options.inputOutputRatio * self.model2.options.inputOutputRatio,
+                        frameHeight * self.model.options.inputOutputRatio * self.model2.options.inputOutputRatio
+                    ),
+                    options: self.model.options
+                )
+                                
                 while srFrameOutput.isReadyForMoreMediaData {
                     try autoreleasepool {
                         if self._interruptFlag {
@@ -309,6 +331,7 @@ class ConvertingAsset: Hashable, ObservableObject {
                             cleanup()
                             return
                         }
+                        
                         let frameImgBuf = CMSampleBufferGetImageBuffer(frameBuf)!
                         
                         let frameTimestamp = CMSampleBufferGetPresentationTimeStamp(frameBuf)
@@ -318,46 +341,22 @@ class ConvertingAsset: Hashable, ObservableObject {
                             self._updateFps()
                             self.currentProgress = Double(frameTime / sampleVideoDuration)
                         }
-
-                        let frameWidth = CVPixelBufferGetWidth(frameImgBuf)
-                        let frameHeight = CVPixelBufferGetHeight(frameImgBuf)
-
+                        
                         let batchProvider = try Waifu2xModelFrameBatchProvider(frameImgBuf, options: self.model.options)
                         let predictions = try predictionModel1.predictions(fromBatch: batchProvider)
-                        
-
-                        let outputCollector1 = Waifu2xModelOutputCollector(
-                            outputSize: (
-                                frameWidth * self.model.options.inputOutputRatio,
-                                frameHeight * self.model.options.inputOutputRatio
-                            ),
-                            options: self.model.options
-                        )
-                        
-                        let outputCollector2 = Waifu2xModelOutputCollector(
-                            outputSize: (
-                                frameWidth * self.model.options.inputOutputRatio * self.model2.options.inputOutputRatio,
-                                frameHeight * self.model.options.inputOutputRatio * self.model2.options.inputOutputRatio
-                            ),
-                            options: self.model.options
-                        )
-
                         let srFrame1 = try outputCollector1.collect(predictions)
                         
                         let batchProvider2 = try Waifu2xModelFrameBatchProvider(srFrame1, options: self.model2.options)
                         let predictions2 = try predictionModel2.predictions(fromBatch: batchProvider2)
-                        
                         let srFrame2 = try outputCollector2.collect(predictions2)
-                        
-                        let srFrameLast = srFrame2
 
+                        let srFrameLast = srFrame2
                         let srFrameBufLast = try createSampleBuffer(
                             reference: frameBuf,
                             pixelBuffer: srFrameLast
                         )
 
                         srFrameOutput.append(srFrameBufLast)
-
                     }
                 }
             } catch {
