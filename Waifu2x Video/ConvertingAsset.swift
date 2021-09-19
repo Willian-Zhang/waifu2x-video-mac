@@ -33,6 +33,7 @@ class ConvertingAsset: Hashable, ObservableObject {
     @Published var outputFileType: AVFileType
     @Published var outputCodec: AVVideoCodecType = .h264
     @Published var model = Model.default
+    @Published var model2 = Model.default
     @Published var generatedPreview: CGImage?
     @Published var currentState: State = .queued
     @Published var error: Error?
@@ -182,8 +183,8 @@ class ConvertingAsset: Hashable, ObservableObject {
         }
         let sampleVideoSize = sampleVideoTrack.naturalSize
         let outputVideoSize = CGSize(
-            width: sampleVideoSize.width * CGFloat(model.options.inputOutputRatio),
-            height: sampleVideoSize.height * CGFloat(model.options.inputOutputRatio)
+            width: sampleVideoSize.width * CGFloat(model.options.inputOutputRatio) * CGFloat(model2.options.inputOutputRatio),
+            height: sampleVideoSize.height * CGFloat(model.options.inputOutputRatio) * CGFloat(model2.options.inputOutputRatio)
         )
         let sampleVideoDuration = CMTimeGetSeconds(avAsset.duration)
         
@@ -199,6 +200,7 @@ class ConvertingAsset: Hashable, ObservableObject {
         }
         
         let predictionModel = try self.model.mlModel(config: modelConfig)
+        let predictionModel2 = try self.model2.mlModel(config: modelConfig)
         
         // Setup reader
         let assetReader = try AVAssetReader(asset: avAsset)
@@ -320,22 +322,37 @@ class ConvertingAsset: Hashable, ObservableObject {
                     let batchProvider = try Waifu2xModelFrameBatchProvider(frameImgBuf, options: self.model.options)
                     let predictions = try predictionModel.predictions(fromBatch: batchProvider)
 
-                    let outputCollector = Waifu2xModelOutputCollector(
+                    let outputCollector1 = Waifu2xModelOutputCollector(
                         outputSize: (
                             frameWidth * self.model.options.inputOutputRatio,
                             frameHeight * self.model.options.inputOutputRatio
                         ),
                         options: self.model.options
                     )
-
-                    let srFrame = try outputCollector.collect(predictions)
-
-                    let srFrameBuf = try createSampleBuffer(
-                        reference: frameBuf,
-                        pixelBuffer: srFrame
+                    
+                    let outputCollector2 = Waifu2xModelOutputCollector(
+                        outputSize: (
+                            frameWidth * self.model.options.inputOutputRatio * self.model2.options.inputOutputRatio,
+                            frameHeight * self.model.options.inputOutputRatio * self.model2.options.inputOutputRatio
+                        ),
+                        options: self.model.options
                     )
 
-                    srFrameOutput.append(srFrameBuf)
+                    let srFrame1 = try outputCollector1.collect(predictions)
+                    
+                    let batchProvider2 = try Waifu2xModelFrameBatchProvider(srFrame1, options: self.model2.options)
+                    let predictions2 = try predictionModel.predictions(fromBatch: batchProvider2)
+                    
+                    let srFrame2 = try outputCollector2.collect(predictions2)
+                    
+                    let srFrameLast = srFrame2
+
+                    let srFrameBufLast = try createSampleBuffer(
+                        reference: frameBuf,
+                        pixelBuffer: srFrameLast
+                    )
+
+                    srFrameOutput.append(srFrameBufLast)
                 }
             } catch {
                 DispatchQueue.main.sync {
