@@ -252,6 +252,7 @@ struct AssetConversionConfigurationView: View {
         var startTime: String = "N/A"
         var startDate: String = "N/A"
         var currentFps: String = "0.00"
+        var remainTime: String = "N/A"
         
         if asset.currentState == .processing,
             let startTime = asset.startTime {
@@ -288,6 +289,12 @@ struct AssetConversionConfigurationView: View {
             )) {
                 currentFps = formattedFps
             }
+            
+            if let remainingTime = asset.remainingTime{
+                let dateFormater = RelativeDateTimeFormatter()
+//                remainTime = dateFormater.string(from: DateInterval(start: Date(), duration: remainingTime)) ?? "N/A"
+                remainTime = dateFormater.localizedString(fromTimeInterval: remainingTime)
+            }
         }
         
         return VStack(spacing: 8) {
@@ -309,6 +316,16 @@ struct AssetConversionConfigurationView: View {
                 LabelDetailView(
                     label: "Start Date",
                     detail: startDate
+                )
+            }
+            HStack(spacing: 16) {
+                LabelDetailView(
+                    label: "Remaining Time",
+                    detail: remainTime
+                )
+                LabelDetailView(
+                    label: "Scale",
+                    detail: "\(asset.scale)x"
                 )
             }
             HStack(spacing: 16) {

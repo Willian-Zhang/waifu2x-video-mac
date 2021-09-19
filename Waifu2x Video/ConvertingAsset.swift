@@ -43,11 +43,16 @@ class ConvertingAsset: Hashable, ObservableObject {
     private(set) var currentFramesPerSecond: Double = 0
     private(set) var startTime: Date?
     private(set) var inputResolution: CGSize = .zero
+    private(set) var remainingTime: TimeInterval?
+    
+    var scale: Int {
+        Int(CGFloat(model.options.inputOutputRatio) * CGFloat(model2.options.inputOutputRatio))
+    }
     
     var outputResolution: CGSize {
         CGSize(
-            width: inputResolution.width * CGFloat(model.options.inputOutputRatio) * CGFloat(model2.options.inputOutputRatio),
-            height: inputResolution.height * CGFloat(model.options.inputOutputRatio) * CGFloat(model2.options.inputOutputRatio)
+            width: inputResolution.width * CGFloat(scale),
+            height: inputResolution.height * CGFloat(scale)
         )
     }
     
@@ -183,10 +188,11 @@ class ConvertingAsset: Hashable, ObservableObject {
         }
         let sampleVideoSize = sampleVideoTrack.naturalSize
         let outputVideoSize = CGSize(
-            width: sampleVideoSize.width * CGFloat(model.options.inputOutputRatio) * CGFloat(model2.options.inputOutputRatio),
-            height: sampleVideoSize.height * CGFloat(model.options.inputOutputRatio) * CGFloat(model2.options.inputOutputRatio)
+            width: sampleVideoSize.width * CGFloat(scale),
+            height: sampleVideoSize.height * CGFloat(scale)
         )
         let sampleVideoDuration = CMTimeGetSeconds(avAsset.duration)
+        let frameRate = Double(sampleVideoTrack.nominalFrameRate)
         
         // Setup model
         let modelConfig = MLModelConfiguration()
@@ -286,8 +292,8 @@ class ConvertingAsset: Hashable, ObservableObject {
                 
                 outputCollector2 = Waifu2xModelOutputCollector(
                     outputSize: (
-                        frameWidth * self.model.options.inputOutputRatio * self.model2.options.inputOutputRatio,
-                        frameHeight * self.model.options.inputOutputRatio * self.model2.options.inputOutputRatio
+                        frameWidth * self.scale,
+                        frameHeight * self.scale
                     ),
                     options: self.model.options
                 )
@@ -340,6 +346,7 @@ class ConvertingAsset: Hashable, ObservableObject {
                         DispatchQueue.main.async {
                             self._updateFps()
                             self.currentProgress = Double(frameTime / sampleVideoDuration)
+                            self.remainingTime = Double((sampleVideoDuration - frameTime) * frameRate / self.currentFramesPerSecond)
                         }
                         
                         let batchProvider = try Waifu2xModelFrameBatchProvider(frameImgBuf, options: self.model.options)
