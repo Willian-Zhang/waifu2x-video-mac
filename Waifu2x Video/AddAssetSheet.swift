@@ -62,6 +62,10 @@ struct AddAssetSheet: View {
                             self.validateInput(url: url) {
                             self.newAssetConfig.inputPath = url
                             self.newAssetConfig.note = self.generateDescription(forUrl: url)
+                            let inputFileName = url
+                                .deletingPathExtension()
+                                .lastPathComponent
+                            self.newAssetConfig.outputPath = url.deletingLastPathComponent().appendingPathComponent("\(inputFileName).Waifu2x_Video").appendingPathExtension(url.pathExtension)
                         }
                     }
                 }) {
@@ -87,12 +91,8 @@ struct AddAssetSheet: View {
                     saveFilePanel.isExtensionHidden = false
                     
                     if let inputPath = self.newAssetConfig.inputPath {
-                        let inputFileName = inputPath
-                            .deletingPathExtension()
-                            .lastPathComponent
-                        
-                        saveFilePanel.directoryURL = inputPath.deletingLastPathComponent()
-                        saveFilePanel.nameFieldStringValue = "\(inputFileName)_Waifu2x_Video"
+                        saveFilePanel.directoryURL = self.newAssetConfig.outputPath?.deletingLastPathComponent()
+                        saveFilePanel.nameFieldStringValue = self.newAssetConfig.outputPath?.lastPathComponent ?? "Untitled\(inputPath.pathExtension)"
                     }
                     
                     saveFilePanel.accessoryView = NSHostingView(
@@ -152,9 +152,10 @@ struct AddAssetSheet: View {
                 }
             } .padding(.top, 8)
         }
-        .animation(.default)
+        .animation(nil)
         .padding(12)
-        .frame(width: 400, alignment: .topLeading)
+        .frame(width: 500, alignment: .topLeading)
+        
     }
     
     private func validateInput(url: URL) -> Bool {

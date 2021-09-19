@@ -99,7 +99,7 @@ struct AssetConversionConfigurationView: View {
                 } .animation(nil)
             }
         }
-        .animation(.default)
+        .animation(nil)
         .padding(12)
         .background(Color.gray.opacity(0.2))
         .cornerRadius(8)

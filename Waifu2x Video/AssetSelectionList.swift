@@ -43,7 +43,7 @@ struct AssetSelectionList: View {
                     .tag(video)
             }
         }
-        .animation(.easeInOut)
+        .animation(nil)
         .frame(minWidth: 200.0, maxWidth: 400)
         .listStyle(SidebarListStyle())
         .contextMenu {
