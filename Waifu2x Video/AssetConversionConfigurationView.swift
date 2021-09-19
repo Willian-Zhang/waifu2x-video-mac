@@ -203,7 +203,18 @@ struct AssetConversionConfigurationView: View {
             
             Picker(
                 selection: self.$asset.model,
-                label: Text("Model")
+                label: Text("Model 1")
+                    .frame(width: 130, alignment: .leading)
+            ) {
+                ForEach(ConvertingAsset.Model.all, id: \.mlModelUrl) {
+                    model in Text(model.name)
+                        .tag(model)
+                }
+            } .disabled(asset.currentState == .processing)
+            
+            Picker(
+                selection: self.$asset.model2,
+                label: Text("Model 2")
                     .frame(width: 130, alignment: .leading)
             ) {
                 ForEach(ConvertingAsset.Model.all, id: \.mlModelUrl) {

@@ -46,8 +46,8 @@ class ConvertingAsset: Hashable, ObservableObject {
     
     var outputResolution: CGSize {
         CGSize(
-            width: inputResolution.width * CGFloat(model.options.inputOutputRatio),
-            height: inputResolution.height * CGFloat(model.options.inputOutputRatio)
+            width: inputResolution.width * CGFloat(model.options.inputOutputRatio) * CGFloat(model2.options.inputOutputRatio),
+            height: inputResolution.height * CGFloat(model.options.inputOutputRatio) * CGFloat(model2.options.inputOutputRatio)
         )
     }
     
@@ -199,7 +199,7 @@ class ConvertingAsset: Hashable, ObservableObject {
             print("[SR] Using metal device: '\(preferredDevice.name)'")
         }
         
-        let predictionModel = try self.model.mlModel(config: modelConfig)
+        let predictionModel1 = try self.model.mlModel(config: modelConfig)
         let predictionModel2 = try self.model2.mlModel(config: modelConfig)
         
         // Setup reader
@@ -323,7 +323,7 @@ class ConvertingAsset: Hashable, ObservableObject {
                         let frameHeight = CVPixelBufferGetHeight(frameImgBuf)
 
                         let batchProvider = try Waifu2xModelFrameBatchProvider(frameImgBuf, options: self.model.options)
-                        let predictions = try predictionModel.predictions(fromBatch: batchProvider)
+                        let predictions = try predictionModel1.predictions(fromBatch: batchProvider)
                         
 
                         let outputCollector1 = Waifu2xModelOutputCollector(
@@ -345,7 +345,7 @@ class ConvertingAsset: Hashable, ObservableObject {
                         let srFrame1 = try outputCollector1.collect(predictions)
                         
                         let batchProvider2 = try Waifu2xModelFrameBatchProvider(srFrame1, options: self.model2.options)
-                        let predictions2 = try predictionModel.predictions(fromBatch: batchProvider2)
+                        let predictions2 = try predictionModel2.predictions(fromBatch: batchProvider2)
                         
                         let srFrame2 = try outputCollector2.collect(predictions2)
                         
